@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: login_sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - login_network
+
+  # Spring Boot Backend
+  backend:
+    build: ./backend
+    container_name: login_backend
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=login_db;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourPassword123!
+    ports:
+      - "8081:8080"
+    depends_on:
+      - sqlserver
+    networks:
+      - login_network
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build: ./frontend
+    container_name: login_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - login_network
+    restart: unless-stopped
+
+volumes:
+  sqlserver_data:
+
+networks:
+  login_network:
+    driver: bridge
